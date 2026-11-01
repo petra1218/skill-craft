@@ -47,13 +47,23 @@ function Install-To([string]$Name, [string]$Dest) {
   }
   New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
   Copy-Item -Recurse -Force $Src $Dest
-  # runtime.conf 记录版本（WriteAllText 默认 UTF-8 无 BOM，PS 5.1/7 行为一致）
-  [System.IO.File]::WriteAllText((Join-Path $Dest "runtime.conf"), "Runtime: Markdown`nVersion: $Version")
+  # runtime.conf 记录版本与命令入口（WriteAllText 默认 UTF-8 无 BOM，PS 5.1/7 行为一致）
+  $CmdPath = ($Dest -replace '\\','/') + "/scripts/craft_cli.py"
+  [System.IO.File]::WriteAllText((Join-Path $Dest "runtime.conf"), "Runtime: Python`nVersion: $Version`nCommand: python $CmdPath")
   if (-not (Test-Path (Join-Path $Dest "SKILL.md")) -or
-      -not (Test-Path (Join-Path $Dest "references"))) {
-    Write-Error "[$Name] 错误: 安装不完整（缺 SKILL.md 或 references/）"
+      -not (Test-Path (Join-Path $Dest "references")) -or
+      -not (Test-Path (Join-Path $Dest "scripts\craft_cli.py"))) {
+    Write-Error "[$Name] 错误: 安装不完整（缺 SKILL.md / references/ / scripts/）"
   }
-  Write-Host "[$Name] 完成（SKILL.md + references/ + runtime.conf）"
+  $Py = Get-Command python -ErrorAction SilentlyContinue
+  if ($Py) {
+    & python -m py_compile (Join-Path $Dest "scripts\craft_cli.py")
+    if ($LASTEXITCODE -ne 0) { Write-Error "[$Name] 错误: craft_cli.py 语法检查未通过" }
+    Remove-Item -Recurse -Force (Join-Path $Dest "scripts\__pycache__") -ErrorAction SilentlyContinue
+  } else {
+    Write-Warning "[$Name] 未找到 python，跳过语法检查（使用本技能需要 Python 3.7+）"
+  }
+  Write-Host "[$Name] 完成（SKILL.md + references/ + scripts/ + runtime.conf $Version）"
 }
 
 $Targets = if ($Agent -eq "all") {

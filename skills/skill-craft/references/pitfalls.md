@@ -10,6 +10,7 @@
 | `$ErrorActionPreference='Stop'` + 原生命令 stderr 重定向 | `git ... 2>$null` 在 PS 5.1 抛终止性错误，非 git 副本（zip 安装）下安装器直接崩 | 原生命令探测期间临时放宽 EAP 为 Continue，完毕恢复；失败分支回退默认值 |
 | PS 5.1 的 `Set-Content -Encoding utf8` | 写出带 BOM 的文件（PS 7 无 BOM），与 sh 版安装器产物格式不一致 | 用 `[System.IO.File]::WriteAllText()`，两代 PS 行为一致（无 BOM） |
 | 记事本存的 .env 带 BOM | 脚本读取首个 key 名变 `\ufeffAPI_KEY` | 解析统一 `utf-8-sig` |
+| 管道下按 GBK 解码 UTF-8 | Windows 管道中 Python 默认 GBK 读 stdin/stdout，中文 JSON 报 UnicodeDecodeError，双平台正文比对会误判（实测把一致判成不一致） | 读 `sys.stdin.buffer` 后显式 UTF-8 解码；**写侧编码跟随平台 + `errors="replace"` 防崩溃即可**——强制 UTF-8 输出在 GBK 消费端反而全乱码（craft_cli 实测），确需 UTF-8 的终端让用户设 `PYTHONIOENCODING` |
 
 ## 二、分发渠道与平台错配
 
@@ -36,4 +37,7 @@
 
 - 令牌值不进仓库、记忆、回显、日志、fixtures——代码只引用变量名。
 - 提交前 grep 令牌模式（覆盖各平台前缀）。
+- **remote URL 内嵌令牌**：`https://x-access-token:TOKEN@github.com/...` 形态把活凭据躺在
+  `.git/config` 明文里（reduce-ai 实证翻车，2026-11 发现）。守护：`craft_cli.py check`
+  扫描 remote URL 内嵌凭据并 FAIL；`adopt` 迁移到 SSH/干净 URL；已暴露令牌立即在平台轮换。
 - 聊天记录里明文出现过的令牌，正式对外前在平台控制台轮换。

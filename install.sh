@@ -42,12 +42,19 @@ install_to() {
   fi
   mkdir -p "$(dirname "$dest")"
   cp -r "$SRC" "$dest"
-  printf 'Runtime: Markdown\nVersion: %s\n' "$VERSION" > "$dest/runtime.conf"
-  if [ ! -f "$dest/SKILL.md" ] || [ ! -d "$dest/references" ]; then
-    echo "[$agent] 错误: 安装不完整（缺 SKILL.md 或 references/）" >&2
+  printf 'Runtime: Python\nVersion: %s\nCommand: python %s/scripts/craft_cli.py\n' "$VERSION" "$dest" > "$dest/runtime.conf"
+  if [ ! -f "$dest/SKILL.md" ] || [ ! -d "$dest/references" ] || [ ! -f "$dest/scripts/craft_cli.py" ]; then
+    echo "[$agent] 错误: 安装不完整（缺 SKILL.md / references/ / scripts/）" >&2
     exit 1
   fi
-  echo "[$agent] 完成（SKILL.md + references/ + runtime.conf）"
+  if command -v python >/dev/null 2>&1; then
+    python -m py_compile "$dest/scripts/craft_cli.py" || {
+      echo "[$agent] 错误: craft_cli.py 语法检查未通过" >&2; exit 1; }
+    rm -rf "$dest/scripts/__pycache__"
+  else
+    echo "[$agent] 警告: 未找到 python，跳过语法检查（使用本技能需要 Python 3.7+）" >&2
+  fi
+  echo "[$agent] 完成（SKILL.md + references/ + scripts/ + runtime.conf $VERSION）"
 }
 
 [ -f "$SRC/SKILL.md" ] || { echo "错误: 未找到 $SRC（请在仓库根目录运行）" >&2; exit 1; }

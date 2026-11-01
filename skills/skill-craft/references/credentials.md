@@ -11,6 +11,9 @@
 - **`.env` 文件是跨环境均衡器**：不管 Agent 怎么启动都在。解析必须 **BOM 容忍**（Windows 记事本存的 .env 带 BOM，`utf-8-sig` 读取；与 install.ps1 必须带 BOM 是同一个 Windows 病的两面）。
 - **用户级配置放技能目录外**（`~/.<工具名>/.env`）：升级 = 覆盖技能目录，key 永不丢；技能目录 `.env` 只是兜底层。
 - frontmatter 若要提示凭据，用规范的 `metadata:` map 或正文说明——**不要发明私有字段**（宽容解析器不报错，但非标准）。
+- **skill-craft 自身的发版令牌即此链的活例**：`GITCODE_TOKEN`（回退 `ATOMGIT_TOKEN`）与
+  `GITHUB_TOKEN`，推荐写用户级 `~/.skill-craft/.env`；`craft_cli.py doctor` 就是三态自检
+  （未配置→三步指路 / 无效→去平台核对 / 有效→附实测延迟）。
 
 ### 各运行环境差异表
 
@@ -54,4 +57,5 @@
 - [ ] doctor 三态 + 首行版本
 - [ ] 用户级配置在技能目录外
 - [ ] .gitignore 覆盖 .env；全仓 grep 令牌模式为 0
+- [ ] remote URL 不内嵌令牌（`craft_cli.py check` 扫描守护）
 - [ ] README 有配置三步 + Update 章节（声明 key 不受升级影响）
